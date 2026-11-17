@@ -1,10 +1,12 @@
 // ==UserScript==
 // @name         Тентлан – доклади за племето
 // @namespace    tentlan-tribe-reports
-// @version      1.0.0
+// @version      1.0.1
 // @description  Бутон „Сподели“ в докладите от битка и шпионаж: текст за чата/форума и линк без реклами.
 // @match        *://*.tentlan.com/*
 // @match        *://tentlan.com/*
+// @downloadURL  https://vanibo.github.io/tentlan-reports/tentlan-reports.user.js
+// @updateURL    https://vanibo.github.io/tentlan-reports/tentlan-reports.user.js
 // @grant        GM_setClipboard
 // @run-at       document-idle
 // ==/UserScript==
@@ -236,7 +238,8 @@ const TR = (() => {
   const server = () => location.hostname.split('.')[0];
 
   const css = `
-  .trx-btn{position:absolute;top:4px;right:4px;z-index:5;font:bold 12px Verdana,sans-serif;color:#fff3d6;
+  .trx-wrap{margin-top:5px}
+  .trx-btn{position:relative;z-index:50;font:bold 12px Verdana,sans-serif;color:#fff3d6;
     background:linear-gradient(#a0582c,#6b2f14);border:1px solid #4a1f0b;border-radius:6px;padding:4px 9px;cursor:pointer;
     box-shadow:0 1px 2px rgba(0,0,0,.3)}
   .trx-btn:hover{filter:brightness(1.15)}
@@ -318,18 +321,29 @@ const TR = (() => {
     for (const rep of TR.findReports(document)) {
       if (rep.anchor.dataset.trxDone) continue;
       rep.anchor.dataset.trxDone = '1';
-      if (getComputedStyle(rep.anchor).position === 'static') rep.anchor.style.position = 'relative';
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'trx-btn'; b.textContent = 'Сподели';
       b.title = 'Сподели доклада в племето (без реклами)';
       b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); openPanel(rep); });
-      rep.anchor.append(b);
+      // под датата на доклада (шпионаж) или под мястото на битката
+      const spot = rep.anchor.querySelector('.spyReportTitleRight') || rep.anchor;
+      const wrap = document.createElement('div');
+      wrap.className = 'trx-wrap';
+      wrap.append(b);
+      spot.append(wrap);
     }
   }
 
+  // Играта променя страницата постоянно (таймери), затова проверяваме на интервал,
+  // а не „когато страницата спре да се променя“.
+  const safeAdd = () => { try { addButtons(); } catch (e) { console.warn('[Тентлан доклади]', e); } };
   addStyle();
-  addButtons();
-  let timer = 0;
-  new MutationObserver(() => { clearTimeout(timer); timer = setTimeout(addButtons, 250); })
-    .observe(document.documentElement, { childList: true, subtree: true });
+  safeAdd();
+  let pending = false;
+  new MutationObserver(() => {
+    if (pending) return;
+    pending = true;
+    setTimeout(() => { pending = false; safeAdd(); }, 300);
+  }).observe(document.documentElement, { childList: true, subtree: true });
+  setInterval(safeAdd, 1500);
 })();
