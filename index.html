@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Доклад – Тентлан</title>
+<style>
+  :root {
+    --bg: #efe4c8; --paper: #fbf3dc; --line: #d8c79e; --head: #7a3b1d; --head2: #a0582c;
+    --ink: #3b2a1a; --muted: #7d6a52; --accent: #8c3b12;
+    --ok: #3d7a2a; --warn: #c27a10; --bad: #b3261e;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.4 Verdana, Segoe UI, sans-serif; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+    background: linear-gradient(#8a4421, #6b2f14); color: #fff3d6; padding: 10px 14px; border-radius: 10px 10px 0 0; }
+  .bar h1 { font-size: 17px; margin: 0; }
+  .bar .meta { font-size: 12px; opacity: .85; }
+  .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+  button { font: inherit; font-size: 13px; border: 1px solid #5a2610; background: #fff3d6; color: #5a2610;
+    border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+  button:hover { background: #ffe2a8; }
+  .card { background: var(--paper); border: 2px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px; padding: 14px; }
+  .msg { padding: 24px; text-align: center; color: var(--muted); }
+  .msg textarea { width: 100%; min-height: 80px; margin-top: 10px; }
+  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #3b2a1a; color: #fff;
+    padding: 8px 14px; border-radius: 6px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  /* ---- общи класове от играта ---- */
+  #report .ribbonSectionTitleContainer { margin: 14px 0 8px; background: var(--head2); color: #fff3d6;
+    padding: 5px 10px; border-radius: 6px; font-weight: bold; }
+  #report .ribbonTail, #report .uiIcon, #report .userAvatarMini, #report .reportImgContainer,
+  #report .spyReportEntryIcon, #report .reportEntryIcon, #report .unitStatIconSmall,
+  #report [style*="clear"]:empty { display: none; }
+  #report .bold { font-weight: bold; }
+  #report .success { color: var(--ok); }
+  #report .resourceIconSmall { display: inline-block; font-size: 11px; font-weight: bold; padding: 0 5px; margin-right: 3px;
+    border-radius: 4px; color: #fff; background: #8b7d6b; vertical-align: 1px; }
+  #report .resourceIconSmall.Limestone::before { content: 'Варовик'; }
+  #report .resourceIconSmall.Obsidian::before { content: 'Обсидиан'; } #report .resourceIconSmall.Obsidian { background: #34343c; }
+  #report .resourceIconSmall.Cacao::before { content: 'Какао'; } #report .resourceIconSmall.Cacao { background: #7b4a2a; }
+  #report .resourceIconSmall.Corn::before { content: 'Царевица'; } #report .resourceIconSmall.Corn { background: #b8901a; }
+  #report .resourceIconSmall.Population::before { content: 'Население'; } #report .resourceIconSmall.Population { background: #a15a2a; }
+
+  /* ---- шпионаж ---- */
+  #report .spyReportTitle { margin-bottom: 8px; }
+  #report .spyReportTitleHero { font-size: 19px; font-weight: bold; color: var(--accent); }
+  #report .spyReportTitleDate { color: var(--muted); font-size: 12px; }
+  #report .spyReportInfoContents { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  #report .spyReportContentBlock { margin-bottom: 12px; }
+  #report .spyReportSectionTitle { background: var(--head2); color: #fff3d6; font-weight: bold; padding: 5px 8px; border-radius: 6px 6px 0 0; }
+  #report .spyReportSectionContent { border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px; background: #fff9e8; padding: 4px 8px; }
+  #report .spyReportResourcesBlock > div { padding: 3px 0; border-bottom: 1px dotted var(--line); font-variant-numeric: tabular-nums; }
+  #report .spyReportColumnEntry, #report .spyReportBlockBody { padding: 4px 0; border-bottom: 1px dotted var(--line); }
+  #report .spyReportColumnEntry:last-child, #report .spyReportResourcesBlock > div:last-child { border-bottom: 0; }
+  #report .spyReportEntryInfoBlock { display: flex; justify-content: space-between; gap: 8px; }
+  #report .spyReportLabel.small { display: flex; justify-content: space-between; gap: 8px; flex: 1; }
+  #report .spyReportAmountLabel { color: var(--accent); font-weight: bold; white-space: nowrap; }
+  #report .spyReportEmptyLine { color: var(--muted); padding: 4px 0; }
+
+  /* ---- битка ---- */
+  #report .reportTitle { text-align: center; }
+  #report .reportTitleHero { display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;
+    font-size: 19px; font-weight: bold; color: var(--accent); }
+  #report .reportTitleVS, #report .reportTroopsVs { color: var(--muted); font-size: 13px; font-weight: normal; }
+  #report .reportTitleSubHero { color: var(--muted); font-size: 12px; }
+  #report .reportSummary { text-align: center; margin: 10px 0; }
+  #report .reportSummaryHero { font-size: 22px; font-weight: bold; color: var(--accent); }
+  #report .reportTroopsContent { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: start; }
+  #report .reportTroopsVs { align-self: center; }
+  #report .reportTroopsColumn { border: 1px solid var(--line); border-radius: 6px; background: #fff9e8; padding: 8px; }
+  #report .reportTroopContainer + .reportTroopContainer { margin-top: 10px; padding-top: 8px; border-top: 2px solid var(--line); }
+  #report .reportUserInfoName { font-weight: bold; font-size: 15px; }
+  #report .reportUserInfoGuild { color: var(--muted); font-size: 12px; }
+  #report .reportUserModifiersContainer { font-size: 12px; margin: 4px 0 6px; }
+  #report .reportUserModifier::before { content: attr(title) ': '; color: var(--muted); }
+  #report .reportColumnEntry { padding: 4px 6px; border-left: 4px solid var(--line); margin: 3px 0; background: #fffdf5; }
+  #report .reportColumnEntry.success { border-left-color: var(--ok); color: inherit; }
+  #report .reportColumnEntry.warning { border-left-color: var(--warn); }
+  #report .reportColumnEntry.error { border-left-color: var(--bad); }
+  #report .reportEntryInfoBlock { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  #report .reportEntryValue { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #report .unitCargoBarContainer { position: relative; min-width: 140px; height: 18px; background: #eadfc4; border-radius: 4px; overflow: hidden; }
+  #report .unitCargoBar { height: 100%; background: var(--ok); }
+  #report .unitCargoBar.error { background: var(--bad); } #report .unitCargoBar.warning { background: var(--warn); }
+  #report .unitCargoBarText { position: absolute; inset: 0; text-align: center; font-size: 12px; line-height: 18px; }
+  #report .reportTroopsColumnFoot { margin-top: 8px; font-size: 12px; color: var(--muted); }
+  #report .reportTroopsColumnFoot .bold { color: var(--ink); }
+  #report .reportRounds { text-align: center; }
+  #report .reportRoundsTable { border-collapse: collapse; margin: 0 auto; background: #fff9e8; }
+  #report .reportRoundsTable th, #report .reportRoundsTable td { border: 1px solid var(--line); padding: 4px 12px; }
+  #report .reportRoundsTable th { background: #f1e3bd; }
+  #report .reportResultsBlock { border: 1px solid var(--line); border-radius: 6px; background: #fff9e8; padding: 8px 10px; margin-bottom: 8px; }
+  #report .reportResultsBlock > div { padding: 2px 0; }
+  #report .reportResultsAmount, #report .reportResultsWinner { font-weight: bold; color: var(--accent); }
+
+  @media (max-width: 760px) {
+    #report .spyReportInfoContents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #report .reportTroopsContent { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 460px) {
+    #report .spyReportInfoContents { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div><h1 id="title">Доклад</h1><div class="meta" id="meta"></div></div>
+    <div class="tools" id="tools" hidden>
+      <button id="copyText">Копирай като текст</button>
+      <button id="copyLink">Копирай линка</button>
+    </div>
+  </div>
+  <div class="card"><div id="report"><div class="msg">Зареждане…</div></div></div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// Общо ядро: четене на доклада от страницата, изчистване, текст, кодиране в линк.
+// Вгражда се и в userscript-а, и в страницата за преглед (build.py).
+const TR = (() => {
+  const RES = {
+    Limestone: 'Варовик', Obsidian: 'Обсидиан', Cacao: 'Какао',
+    Corn: 'Царевица', Population: 'Население', Gold: 'Злато',
+  };
+  const KEEP = new Set(['DIV', 'SPAN', 'TABLE', 'THEAD', 'TBODY', 'TR', 'TH', 'TD',
+    'B', 'STRONG', 'I', 'EM', 'BR', 'P', 'SMALL', 'UL', 'LI']);
+  const DROP = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'INS', 'IMG', 'BUTTON', 'INPUT',
+    'SELECT', 'TEXTAREA', 'SVG', 'CANVAS', 'VIDEO', 'AUDIO', 'OBJECT', 'EMBED', 'LINK',
+    'META', 'NOSCRIPT', 'FORM', 'TEMPLATE']);
+  const MAX_BYTES = 400000;
+
+  const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const norm = s => (s || '').replace(/\s+/g, ' ').trim();
+  const cls = el => el.getAttribute && (el.getAttribute('class') || '') || '';
+  const cleanClass = c => c.split(/\s+/).filter(x => /^[A-Za-z][\w-]{0,40}$/.test(x)).join(' ');
+
+  // Пресъздава HTML само с разрешени тагове и атрибути (class, title, width %).
+  function sanitize(node) {
+    let out = '';
+    for (const n of node.childNodes) {
+      if (n.nodeType === 3) { out += esc(n.nodeValue.replace(/\s+/g, ' ')); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toUpperCase();
+      if (DROP.has(tag)) continue;
+      const c = cls(n);
+      if (/google-auto-placed|adsbygoogle|trx-/.test(c)) continue;
+      if (tag === 'BR') { out += '<br>'; continue; }
+      const inner = sanitize(n);
+      if (!KEEP.has(tag)) { out += inner; continue; }
+      const t = tag.toLowerCase();
+      let a = '';
+      const cc = cleanClass(c); if (cc) a += ` class="${cc}"`;
+      const title = n.getAttribute('title'); if (title) a += ` title="${esc(norm(title).slice(0, 80))}"`;
+      const w = (n.getAttribute('style') || '').match(/(?:^|;)\s*width:\s*(\d{1,3}(?:\.\d+)?)%/);
+      if (w) a += ` style="width:${Math.min(100, parseFloat(w[1]))}%"`;
+      out += `<${t}${a}>${inner}</${t}>`;
+    }
+    return out.replace(/> +</g, '> <');
+  }
+
+  function upTo(el, sel) {
+    for (let p = el.parentElement, i = 0; p && i < 8; p = p.parentElement, i++) {
+      if (p.querySelector(sel)) return p;
+    }
+    return null;
+  }
+
+  // Намира всички доклади на страницата: [{kind:'s'|'c', root, anchor}]
+  function findReports(doc) {
+    const out = [];
+    doc.querySelectorAll('.spyReportTitle').forEach(a => {
+      const r = upTo(a, '.spyReportInfoContents'); if (r) out.push({ kind: 's', root: r, anchor: a });
+    });
+    doc.querySelectorAll('.reportTitle').forEach(a => {
+      const r = upTo(a, '.reportTroops, .reportResults'); if (r) out.push({ kind: 'c', root: r, anchor: a });
+    });
+    return out;
+  }
+
+  function reportName(rep) {
+    for (const t of rep.root.querySelectorAll('.ribbonSectionTitle .windowTitle2a')) {
+      if (t.compareDocumentPosition(rep.anchor) & Node.DOCUMENT_POSITION_FOLLOWING) return norm(t.textContent);
+      break;
+    }
+    return rep.kind === 's' ? 'Доклад от шпионажа' : 'Доклад от битката';
+  }
+
+  function capture(rep, server) {
+    return { v: 1, k: rep.kind, s: server || '', t: Date.now(), n: reportName(rep), h: sanitize(rep.root) };
+  }
+
+  // ---------- текст ----------
+  function resName(el) {
+    if (!el.classList || !el.classList.contains('resourceIconSmall')) return null;
+    for (const c of el.classList) if (c in RES || /^[A-Z]/.test(c)) return RES[c] || c;
+    return null;
+  }
+  function txt(el) {
+    let s = '';
+    for (const n of el.childNodes) {
+      if (n.nodeType === 3) s += n.nodeValue;
+      else if (n.nodeType === 1) {
+        const r = resName(n);
+        if (r) s += (/\d\s*$/.test(s) ? ' |' : '') + ` ${r}: `;
+        else if (n.tagName === 'BR') s += ' ';
+        else s += ' ' + txt(n) + ' ';
+      }
+    }
+    return norm(s);
+  }
+  const first = (root, sel) => { const e = root.querySelector(sel); return e ? txt(e) : ''; };
+  const nextSib = (el, sel) => { for (let s = el.nextElementSibling; s; s = s.nextElementSibling) if (s.matches(sel)) return s; return null; };
+  const ribbonBefore = el => {
+    for (let s = el.previousElementSibling; s; s = s.previousElementSibling) {
+      if (s.matches('.ribbonSectionTitleContainer')) return first(s, '.windowTitle2a');
+      if (s.textContent.trim()) return '';
+    }
+    return '';
+  };
+  const stamp = t => {
+    const d = new Date(t), p = x => String(x).padStart(2, '0');
+    return `${p(d.getDate())}.${p(d.getMonth() + 1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+
+  function spyText(root, L) {
+    L.push(first(root, '.spyReportTitleHero'));
+    const date = first(root, '.spyReportTitleDate'); if (date) L.push(date);
+    root.querySelectorAll('.spyReportSectionTitle').forEach(h => {
+      const head = txt(h);
+      const body = nextSib(h, '.spyReportSectionContent'); if (!body) return;
+      const res = body.querySelectorAll('.spyReportResourcesBlock > div');
+      const entries = body.querySelectorAll('.spyReportColumnEntry');
+      L.push('');
+      if (res.length) {
+        L.push(`${head}:`); res.forEach(d => L.push('  ' + txt(d)));
+      } else if (entries.length) {
+        const items = [...entries].map(e => {
+          const lbl = e.querySelector('.spyReportLabel'), amtEl = e.querySelector('.spyReportAmountLabel');
+          const amt = amtEl ? txt(amtEl).replace(/^\((.*)\)$/, '$1') : '';
+          let name = lbl ? lbl.cloneNode(true) : e.cloneNode(true);
+          name.querySelectorAll('.spyReportAmountLabel').forEach(x => x.remove());
+          return (txt(name) + ' ' + amt).trim();
+        });
+        if (body.closest('.units') || h.closest('.units')) { L.push(`${head}:`); items.forEach(i => L.push('  ' + i)); }
+        else L.push(`${head}: ${items.join(', ')}`);
+      } else {
+        L.push(`${head}: ${txt(body)}`);
+      }
+    });
+  }
+
+  function combatText(root, L) {
+    const parties = [...root.querySelectorAll('.reportTitleHero > *')].map(txt).filter(Boolean);
+    if (parties.length) L.push(parties.join(' '));
+    const sub = first(root, '.reportTitleSubHero'); if (sub) L.push(sub);
+    const sum = [first(root, '.reportSummaryHero'), first(root, '.reportSummarySubHero')].filter(Boolean).join(' ');
+    if (sum) L.push(sum);
+
+    const troops = root.querySelector('.reportTroops');
+    if (troops) {
+      L.push('', `== ${ribbonBefore(troops) || 'Войски'} ==`);
+      troops.querySelectorAll('.reportTroopsColumn').forEach(col => {
+        col.querySelectorAll('.reportTroopContainer').forEach(tc => {
+          const who = [first(tc, '.reportUserInfoName'), first(tc, '.reportUserInfoGuild')].filter(Boolean).join(' ');
+          const mods = [...tc.querySelectorAll('.reportUserModifier')]
+            .map(m => (m.getAttribute('title') ? m.getAttribute('title') + ' ' : '') + txt(m)).join(', ');
+          L.push('', `-- ${who || '?'}${mods ? ' (' + mods + ')' : ''} --`);
+          tc.querySelectorAll('.reportColumnEntry').forEach(e => {
+            L.push(`  ${first(e, '.reportEntryLabel')} ${first(e, '.reportEntryValue')}`.trimEnd());
+          });
+        });
+        const foot = [...col.querySelectorAll('.reportTroopsColumnFoot > *')].map(txt).filter(Boolean);
+        if (foot.length) L.push('  ' + foot.join(' | '));
+      });
+    }
+
+    const rounds = root.querySelector('.reportRounds');
+    if (rounds) {
+      L.push('', `== ${ribbonBefore(rounds) || 'Рундове'} ==`);
+      const th = [...rounds.querySelectorAll('thead th')].map(txt);
+      rounds.querySelectorAll('tbody tr').forEach(tr => {
+        const td = [...tr.children].map(txt);
+        L.push(`  ${td[0]}: ` + td.slice(1).map((v, i) => (th[i + 1] ? th[i + 1] + ' ' : '') + v).join(' | '));
+      });
+    }
+
+    const results = root.querySelector('.reportResults');
+    if (results) {
+      L.push('', `== ${ribbonBefore(results) || 'Резултати'} ==`);
+      results.querySelectorAll('.reportResultsBlock > *').forEach(d => { const t = txt(d); if (t) L.push(t); });
+    }
+  }
+
+  // root: елемент с доклада (в играта или в страницата за преглед)
+  function toText(root, kind, meta) {
+    const L = [`=== ${meta.n || ''}${meta.s ? ' (' + meta.s + ')' : ''} ===`];
+    if (kind === 's') spyText(root, L);
+    else if (kind === 'c') combatText(root, L);
+    else L.push(txt(root));
+    L.push('', `Споделен на ${stamp(meta.t || Date.now())}`);
+    return L.join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+
+  // ---------- кодиране за линка ----------
+  async function encode(obj) {
+    const bytes = new TextEncoder().encode(JSON.stringify(obj));
+    const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    const buf = new Uint8Array(await new Response(stream).arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  async function decode(code) {
+    const b64 = code.replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '==='.slice((b64.length + 3) % 4));
+    const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+    const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+    const parts = []; let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > MAX_BYTES) throw new Error('Докладът е твърде голям');
+      parts.push(value);
+    }
+    const all = new Uint8Array(total); let o = 0;
+    for (const p of parts) { all.set(p, o); o += p.length; }
+    const obj = JSON.parse(new TextDecoder().decode(all));
+    if (!obj || obj.v !== 1 || typeof obj.h !== 'string') throw new Error('Непознат формат');
+    return obj;
+  }
+
+  return { sanitize, findReports, capture, toText, encode, decode, norm };
+})();
+
+(async () => {
+  const $ = id => document.getElementById(id);
+  const toast = m => { const t = $('toast'); t.textContent = m; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1600); };
+  const copy = async s => {
+    try { await navigator.clipboard.writeText(s); }
+    catch { const a = document.createElement('textarea'); a.value = s; document.body.append(a); a.select(); document.execCommand('copy'); a.remove(); }
+    toast('Копирано');
+  };
+  const codeFrom = s => { const m = String(s).match(/(?:#|r=)([A-Za-z0-9_-]{20,})/); return m ? m[1] : (/^[A-Za-z0-9_-]{20,}$/.test(s.trim()) ? s.trim() : ''); };
+
+  function showPaste(err) {
+    $('report').innerHTML = `<div class="msg">${err ? '<b>Линкът не може да се прочете.</b> Може да е отрязан при копиране.<br><br>' : ''}
+      Отвори линк от доклад или постави линка/кода тук:<textarea id="paste" placeholder="https://.../#..."></textarea>
+      <button id="go">Покажи</button></div>`;
+    $('go').onclick = () => { const c = codeFrom($('paste').value); if (c) { location.hash = c; } };
+  }
+
+  async function render() {
+    const code = codeFrom(location.hash);
+    if (!code) return showPaste(false);
+    let d;
+    try { d = await TR.decode(code); } catch (e) { return showPaste(true); }
+    // повторно изчистване: показваме само разрешени тагове и класове
+    const parsed = new DOMParser().parseFromString(d.h, 'text/html');
+    const root = $('report');
+    root.innerHTML = TR.sanitize(parsed.body);
+    const firstRibbon = root.querySelector('.ribbonSectionTitleContainer');
+    if (firstRibbon && TR.norm(firstRibbon.textContent) === d.n) firstRibbon.remove();
+    const when = new Date(d.t);
+    $('title').textContent = d.n || 'Доклад';
+    document.title = `${d.n || 'Доклад'} – Тентлан`;
+    $('meta').textContent = [d.s && `Сървър ${d.s}`, !isNaN(when) && `споделен ${when.toLocaleString('bg-BG')}`].filter(Boolean).join(' · ');
+    $('tools').hidden = false;
+    $('copyText').onclick = () => copy(TR.toText(root, d.k, d));
+    $('copyLink').onclick = () => copy(location.href);
+  }
+  window.addEventListener('hashchange', render);
+  render();
+})();
+</script>
+</body>
+</html>
